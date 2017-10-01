@@ -1,20 +1,20 @@
-<?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context="com.example.mongk.directprinterkotlin.MainActivity">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="fill_parent" android:layout_height="fill_parent" android:orientation="vertical">
+    <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <Button android:id="@+id/btn_connect" android:layout_width="120dip" android:layout_height="wrap_content" android:text="connect_to_ip_btn"/>
+        <EditText android:id="@+id/ip_address" android:layout_width="200dip" android:layout_height="wrap_content" android:text="192.168.31.87"/>
+    </LinearLayout>
+    <EditText android:id="@+id/edt_print_content" android:layout_width="fill_parent" android:layout_height="180dip" android:gravity="top|left" android:hint="print_content_hint_edt"/>
+    <TableLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <TableRow>
 
-    <TextView
-        android:layout_width="203dp"
-        android:layout_height="78dp"
-        android:text="activity_main"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintHorizontal_bias="0.097"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.079" />
+        </TableRow>
+        <TableRow>
 
-</android.support.constraint.ConstraintLayout>
+        </TableRow>
+    </TableLayout>
+    <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <Button android:id="@+id/btn_print" android:layout_width="100dip" android:layout_height="wrap_content" android:text="print_btn"/>
+        <Button android:id="@+id/btn_test" android:layout_width="100dip" android:layout_height="wrap_content" android:layout_marginLeft="8dip" android:text="test_btn"/>
+        <Button android:id="@+id/btn_option" android:layout_width="100dip" android:layout_height="wrap_content" android:layout_marginLeft="8dip" android:text="option_btn"/>
+    </LinearLayout>
+</LinearLayout>

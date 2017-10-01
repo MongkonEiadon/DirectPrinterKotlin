@@ -49,6 +49,12 @@ dependencies {
     implementation "com.android.support:palette-v7:$supportLibVersion"
     implementation "com.android.support:recyclerview-v7:$supportLibVersion"
 
+    //compile RTDriver
+    compile files('libs/RTDriver.jar')
+    compile files('libs/RT_Android_WIFI_SDK_140627.jar')
+
+
+
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     testCompile 'junit:junit:4.12'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
