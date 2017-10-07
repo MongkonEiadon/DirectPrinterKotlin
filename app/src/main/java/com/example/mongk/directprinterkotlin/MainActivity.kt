@@ -1,6 +1,7 @@
 package com.example.mongk.directprinterkotlin
 
 
+import android.app.Activity
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
@@ -16,16 +17,8 @@ import com.RT_Printer.WIFI.WifiPrintDriver
 import mu.KotlinLogging
 import android.os.StrictMode
 import android.provider.MediaStore
-import android.view.View
 import android.widget.EditText
-import org.slf4j.helpers.Util
-import java.io.BufferedInputStream
-import java.io.ByteArrayOutputStream
-import java.io.FileInputStream
-import java.io.FileNotFoundException
-import android.graphics.drawable.BitmapDrawable
 import android.view.Gravity
-import android.view.View.OnClickListener
 import android.widget.Button
 import android.widget.Toast
 
@@ -36,42 +29,10 @@ class MainActivity : AppCompatActivity() {
 
 
     private var wifiSocket: WifiPrintDriver? = null
-
     private var mIpAddress: EditText? = null
-    private var mConnect: Button? = null
-    private var mPrintTest: Button? = null
 
-    // The Handler that gets information back from the BluetoothChatService
-    private val mHandler = object : Handler() {
-        override fun handleMessage(msg: Message) {
-            when (msg.what) {
-                MESSAGE_STATE_CHANGE -> {
-                    if (D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1)
-                    when (msg.arg1) {
 
-                    }
-                }
-                MESSAGE_WRITE -> {
-                }
-                MESSAGE_READ -> {
-                    var Msg: String? = null
-                    val readBuf = msg.obj as ByteArray
-                    if (D) Log.i(TAG, "readBuf[0]:" + readBuf[0] + "  revBytes:" + revBytes)
-
-                    Msg = ""
-                    for (i in 0 until revBytes) {
-                        Msg = Msg!! + " 0x"
-                        Msg = Msg + Integer.toHexString(readBuf[i].toInt())
-                    }
-                    DisplayToast(Msg)
-                }
-                MESSAGE_TOAST -> {
-                }
-            }
-        }
-    }
-
-    fun DisplayToast(str: String?) {
+    fun displayToast(str: String?) {
         val toast = Toast.makeText(this, str, Toast.LENGTH_SHORT)
         toast.setGravity(Gravity.TOP, 0, 100)
         toast.show()
@@ -119,36 +80,13 @@ class MainActivity : AppCompatActivity() {
 
             doPrint(intent)
 
+            Activity().finish()
         }
 
     }
 
 
-    @Override
-    protected fun InitialWifiPrinter(): Boolean {
-        if(wifiSocket == null) {
-            wifiSocket = WifiPrintDriver(this, mHandler)
-        }
 
-        if(IPAddress == null) {    IPAddress =  mIpAddress!!.text.toString() }
-
-        var port = 9100
-
-        var result = wifiSocket!!.WIFISocket(IPAddress, port)
-
-        if(result){
-
-            Toast.makeText(this@MainActivity, "Connect to printer Success", Toast.LENGTH_SHORT).show()
-            this@MainActivity.setTitle("Connect to printer Success")
-
-        }
-        else{
-            Toast.makeText(this@MainActivity, "Failed to connect printer!", Toast.LENGTH_SHORT).show()
-            this@MainActivity.setTitle("Failed to connect printer!")
-        }
-
-        return result
-    }
 
 
 
@@ -156,46 +94,28 @@ class MainActivity : AppCompatActivity() {
 
         var uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
         var context = applicationContext;
-        var toast = Toast.makeText(context, "doing print!", Toast.LENGTH_SHORT)
-        toast.show()
 
         if (uri != null) {
-
-
-            toast = Toast.makeText(context, "Received Image!", Toast.LENGTH_SHORT)
-            toast.show()
-
             var bmp = MediaStore.Images.Media.getBitmap(this.contentResolver, uri);
 
-            val maxWidth = 300 //
+            val maxWidth = 7*82 //
 
             bmp = Bitmap.createScaledBitmap(bmp, maxWidth, ((bmp.height/bmp.width)* maxWidth), false)
 
             if(wifiSocket == null || wifiSocket!!.IsNoConnection()) {
-
-                toast = Toast.makeText(context, "Setup Printer!", Toast.LENGTH_SHORT)
-                toast.show()
-
                 InitialWifiPrinter()
-
                 wifiSocket!!.Begin()
             }
 
 
             if(!wifiSocket!!.IsNoConnection()) {
-                toast = Toast.makeText(context, "Connected to printer!", Toast.LENGTH_SHORT)
-                toast.show()
-                val start = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1B, 0x40, 0x1B, 0x33, 0x00)
-                wifiSocket!!.WIFI_Write(start, start.size)
-
                 val bytes = Utils.getReadBitMapBytes(bmp)
+
+                var bmp_bytes = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
                 wifiSocket!!.WIFI_Write(bytes, bytes.size)
 
-                val end = byteArrayOf(0x1d, 0x4c, 0x1f, 0x00)
-                wifiSocket!!.WIFI_Write(end, end.size)
-
-
-                toast = Toast.makeText(context, "done", Toast.LENGTH_SHORT)
+                var toast = Toast.makeText(context, "พิมพ์สำเร็จ", Toast.LENGTH_SHORT)
                 toast.show()
             }
         }
@@ -211,9 +131,6 @@ class MainActivity : AppCompatActivity() {
         val MESSAGE_READ = 2
         val MESSAGE_WRITE = 3
         val MESSAGE_TOAST = 4
-
-        val DEVICE_NAME = "device_name"
-        val TOAST = "toast"
         var revBytes = 0
 
         var IPAddress: String? = ""
@@ -223,7 +140,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun InitialUIControl(){
         //initial ui
-        mConnect = findViewById(R.id.btn_connect)
+        val _mConnect = findViewById<Button>(R.id.btn_connect)
         mIpAddress = findViewById(R.id.ip_address)
         val _mPrintTest = findViewById<Button>(R.id.btn_test)
 
@@ -240,13 +157,79 @@ class MainActivity : AppCompatActivity() {
 
             }
             else{
-
                 Toast.makeText(this@MainActivity, "No wifi connection!", Toast.LENGTH_SHORT).show()
             }
+        }
+        _mConnect!!.setOnClickListener{
+            InitialWifiPrinter()
+        }
 
-            finish()
+    }
+
+    @Override
+    protected fun InitialWifiPrinter(): Boolean {
+        if(wifiSocket == null) {
+            wifiSocket = WifiPrintDriver(this, mHandler)
+        }
+
+        if(IPAddress == null || IPAddress == "") { IPAddress =  mIpAddress!!.text.toString() }
+
+        var port = 9100
+
+        displayToast("Try to connect: " + IPAddress + ", port: " + port.toString())
+        var result = wifiSocket!!.WIFISocket(IPAddress, port)
+
+        if(result){
+
+            Toast.makeText(this@MainActivity, "Connect to printer Success", Toast.LENGTH_SHORT).show()
+            this@MainActivity.setTitle("Connect to printer Success")
+
+        }
+        else{
+            Toast.makeText(this@MainActivity, "Failed to connect printer!", Toast.LENGTH_SHORT).show()
+            this@MainActivity.setTitle("Failed to connect printer!")
+        }
+
+        return result
+    }
+
+    @Override
+    override fun onDestroy() {
+        super.onDestroy()
+        if(wifiSocket != null) wifiSocket!!.stop()
+        if(D) Log.e(TAG, "-- onDestroy --")
+    }
+
+    // The Handler that gets information back from the BluetoothChatService
+    private val mHandler = object : Handler() {
+        override fun handleMessage(msg: Message) {
+            when (msg.what) {
+                MESSAGE_STATE_CHANGE -> {
+                    if (D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1)
+                    when (msg.arg1) {
+
+                    }
+                }
+                MESSAGE_WRITE -> {
+                }
+                MESSAGE_READ -> {
+                    var Msg: String? = null
+                    val readBuf = msg.obj as ByteArray
+                    if (D) Log.i(TAG, "readBuf[0]:" + readBuf[0] + "  revBytes:" + revBytes)
+
+                    Msg = ""
+                    for (i in 0 until revBytes) {
+                        Msg = Msg!! + " 0x"
+                        Msg = Msg + Integer.toHexString(readBuf[i].toInt())
+                    }
+                    displayToast(Msg)
+                }
+                MESSAGE_TOAST -> {
+                }
+            }
         }
     }
+
 
 
 }
