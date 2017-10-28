@@ -1,11 +1,8 @@
 package com.example.mongk.directprinterkotlin
 
-
-import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
@@ -13,7 +10,6 @@ import android.os.Handler
 import android.os.Message
 import android.util.Log
 import android.support.v7.app.AppCompatActivity
-import com.RT_Printer.WIFI.WifiPrintDriver
 import mu.KotlinLogging
 import android.os.StrictMode
 import android.provider.MediaStore
@@ -21,6 +17,11 @@ import android.widget.EditText
 import android.view.Gravity
 import android.widget.Button
 import android.widget.Toast
+import com.mocoo.hang.rtprinter.driver.BitmapConvertUtil
+import com.mocoo.hang.rtprinter.driver.HsWifiPrintDriver
+import android.content.Context.INPUT_METHOD_SERVICE
+import android.view.inputmethod.InputMethodManager
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,7 +29,7 @@ class MainActivity : AppCompatActivity() {
     val intentFilter =  IntentFilter()
 
 
-    private var wifiSocket: WifiPrintDriver? = null
+    private var wifiSocket: HsWifiPrintDriver? = HsWifiPrintDriver.getInstance()
     private var mIpAddress: EditText? = null
 
 
@@ -69,56 +70,47 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         InitialUIControl()
 
-
-        if(wifiSocket == null){
-            wifiSocket = WifiPrintDriver(this, mHandler)
-        }
-
         // when intent was sent
         if(Intent.ACTION_SEND == action){
             logger.info{intent.type.toString()}
 
             doPrint(intent)
 
-            Activity().finish()
         }
 
     }
 
-
-
-
-
-
     private fun doPrint(intent: Intent) {
 
         var uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-        var context = applicationContext;
-
         if (uri != null) {
             var bmp = MediaStore.Images.Media.getBitmap(this.contentResolver, uri);
-
-            val maxWidth = 7*82 //
-
-            bmp = Bitmap.createScaledBitmap(bmp, maxWidth, ((bmp.height/bmp.width)* maxWidth), false)
-
-            if(wifiSocket == null || wifiSocket!!.IsNoConnection()) {
-                InitialWifiPrinter()
-                wifiSocket!!.Begin()
-            }
+            val maxWidth = 7*82
 
 
-            if(!wifiSocket!!.IsNoConnection()) {
-                val bytes = Utils.getReadBitMapBytes(bmp)
+            var wifiDriver : HsWifiPrintDriver = HsWifiPrintDriver.getInstance()
+            wifiDriver.setHandler(mHandler)
+            wifiDriver.WIFISocket(mIpAddress!!.text.toString(), 9100)
 
-                var bmp_bytes = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            if( !wifiDriver!!.IsNoConnection())
+            {
+                bmp = BitmapConvertUtil.scaleToRequiredWidth(bmp, maxWidth)
 
-                wifiSocket!!.WIFI_Write(bytes, bytes.size)
+                val newBm = BitmapConvertUtil.decodeSampledBitmapFromBitmap(bmp, maxWidth)
+                val xL = (((newBm.width - 1) / 8 + 1) % 256).toByte()
+                val xH = (((newBm.width - 1) / 8 + 1) / 256).toByte()
+                val yL = (newBm.height % 256).toByte()
+                val yH = (newBm.height / 256).toByte()
+                val pixels = BitmapConvertUtil.convert(newBm)
+                wifiDriver!!.WIFI_Write(byteArrayOf(29, 118, 48, 0, xL, xH, yL, yH))
+                wifiDriver!!.WIFI_Write(pixels)
+                //wifiDriver!!.WIFI_Write(byteArrayOf(10))
 
-                var toast = Toast.makeText(context, "พิมพ์สำเร็จ", Toast.LENGTH_SHORT)
-                toast.show()
+                wifiDriver.stop()
             }
         }
+
+        finish()
     }
 
     companion object {
@@ -153,30 +145,48 @@ class MainActivity : AppCompatActivity() {
 
             if(!wifiSocket!!.IsNoConnection()){
                 wifiSocket!!.Begin()
-                wifiSocket!!.printImage()
+                wifiSocket!!.SelftestPrint()
 
             }
             else{
                 Toast.makeText(this@MainActivity, "No wifi connection!", Toast.LENGTH_SHORT).show()
             }
+
+
         }
         _mConnect!!.setOnClickListener{
+
+            //HIDE KEYBOARDS
+            val keyboard = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            keyboard.hideSoftInputFromWindow(currentFocus.windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
+
             InitialWifiPrinter()
+
+
+            //store user settings
+            var settings = getSharedPreferences("UserInfo", 0)
+            var editor = settings.edit()
+            editor.putString("IpAddress", IPAddress)
+            editor.commit()
         }
+
+
+        var setting = getSharedPreferences("UserInfo",0)
+        mIpAddress?.setText(setting.getString("IpAddress", "").toString())
 
     }
 
     @Override
     protected fun InitialWifiPrinter(): Boolean {
         if(wifiSocket == null) {
-            wifiSocket = WifiPrintDriver(this, mHandler)
+            wifiSocket = HsWifiPrintDriver.getInstance()
         }
+        IPAddress =  mIpAddress!!.text.toString()
 
-        if(IPAddress == null || IPAddress == "") { IPAddress =  mIpAddress!!.text.toString() }
 
         var port = 9100
 
-        displayToast("Try to connect: " + IPAddress + ", port: " + port.toString())
+        wifiSocket!!.setHandler(mHandler)
         var result = wifiSocket!!.WIFISocket(IPAddress, port)
 
         if(result){

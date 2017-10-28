@@ -51,7 +51,6 @@ dependencies {
 
     //compile RTDriver
     compile files('libs/RTDriver.jar')
-    compile files('libs/RT_Android_WIFI_SDK_140627.jar')
 
 
 
